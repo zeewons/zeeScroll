@@ -1,12 +1,12 @@
 
-
 (function ($) {
     var scrollableTop;
     var scrolingDist;
+    var ratio;
+    var self;
     var Scrolls = {
-        
         Init: function (options, elem) {
-             self = this;
+            self = this;
             self.options = $.extend({}, $.fn.zeeScroll.options, options);
             self.settings = $.fn.zeeScroll.Settings;
             var $elem = $(elem);
@@ -17,41 +17,37 @@
             {
                 self.createClass($elem);
             }
-            //function on the mouse scroll
-            /*for Mozilla*/
-            if (window.addEventListener)
-                window.addEventListener('DOMMouseScroll', self.WheelHandler, false);
-            /* for IE/Opera*/
-            window.onmousewheel = document.onmousewheel = self.WheelHandler;
+           self.scrollable.mouseover(function () {
+                $(this).attr("id", "zeeId");
+               var tagDiv=document.getElementById('zeeId');
+               tagDiv.addEventListener('DOMMouseScroll', self.WheelHandler, false);
+               tagDiv.addEventListener("mousewheel", self.WheelHandler, false);
+
+            }).mouseout(function () { $(this).removeAttr("id"); });
         },
         createClass: function ($elem) {
-            //var self = this;
             $elem.addClass('zee-Scrollable');
             self.scrollable = $elem;
             self.scrollarea = $elem.children().addClass('zee-scrollarea');
             scroller = '<div class="zee-scroller"></div>';
             $elem.append(scroller);
             self.scroller = $elem.children('.zee-scroller');
-            self.scrollareaHt = self.scrollarea.outerHeight(true);
+            self.scrollareaHt = self.scrollarea.height();
             var scrollerHt = self.CalcHeight($elem);
             self.makeScroller(scrollerHt);
-           
             scrollableTop = self.scrollable.offset().top;
-            scrolingDist = self.scrollable.height() - self.scroller.height();
-
-
+            self.scrollareaPos = self.scrollarea.position().top;
+            scrolingDist = self.scrollable.outerHeight() - self.scroller.outerHeight();
+            ratio = self.scrollareaHt / self.options.scrollableHt;
         },
         CalcHeight: function ($elem) {
-            //var self = this;
             return self.options.scrollableHt / (self.scrollareaHt / self.options.scrollableHt);
         },
         makeScroller: function (scrollerHt) {
-            //var self = this;
             self.scroller.css({ height: scrollerHt, background: self.options.scrollerColor, width: self.options.scrollerWdt });
             self.Drag();
         },
         Drag: function () {
-           // var self = this;
             self.scroller.draggable({
                 axis: 'y',
                 containment: '.zee-Scrollable',
@@ -61,40 +57,41 @@
             });
         },
         Scrolling: function (e) {
-            //var self = this;
             var scrollPostion = self.scroller.position().top;
-            self.scrollarea.css({ top: -(scrollPostion * (self.scrollareaHt / self.options.scrollableHt) - 1) });
+            self.scrollarea.css({ top: -(scrollPostion * ratio - 1) });
         },
-        
         WheelHandler: function (e) {
             var delta;
             if (!e)
                 e = window.event;
-            if (e.wheelDelta)
+            else if (e.wheelDelta)
                 delta = e.wheelDelta / 120;
-            else if (e.detail)
-            {
+            else if (e.detail) {
                 delta = -e.detail / 3;
             }
             var scrollerTop = self.scroller.offset().top;
+            var scrollerPos = self.scroller.position().top;
             if (delta < 0) {
-                console.log(scrollerTop + "-----" + scrolingDist + "-----12     " + scrollableTop);
-                if (scrollerTop < scrollableTop + scrolingDist)
-                {
-                    console.log(1);
-                    self.scroller.css({ top: scrollerTop + 3 });
-                    self.Scrolling();
+                if (scrollerTop < scrollableTop + scrolingDist) {
+                    self.scroller.css({ top: scrollerPos + 5 });
+                    scrollerPos = self.scroller.position().top;
+                    if (scrollerPos > scrollableTop + scrolingDist) {
+                        self.scroller.css({ top: scrollableTop + scrolingDist });
+                    }
+                    self.Scrolling(e);
                 }
             } else {
-               console.log(scrollerTop);
-                console.log(scrollableTop);
                 if (scrollerTop > scrollableTop) {
-                 //   console.log(2);
-                    self.scroller.css({ top: scrollerTop });
-                    self.Scrolling();
-                } 
+                    self.scroller.css({ top: scrollerPos - 15 });
+                    scrollerPos = self.scroller.position().top;
+                    if (scrollerPos < self.scrollareaPos) {
+                        self.scroller.css({ top: self.scrollareaPos });
+                    }
+                    self.Scrolling(e);
+                }
             }
         }
+
     };
     $.fn.zeeScroll = function (options) {
         return this.each(function () {
@@ -110,12 +107,12 @@
                 var scrolls = Object.create(Scrolls);
                 scrolls.Init(options, this);
             }
-           
+
         });
     };
 
     $.fn.zeeScroll.options = {
-        scrollableHt: "220",
+        scrollableHt: "200",
         color: "red",
         scrollerWdt: "10",
         scrollerColor: "#afa"
